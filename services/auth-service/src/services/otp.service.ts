@@ -12,6 +12,9 @@ const sms = AT.SMS;
  * Generate a cryptographically random 6-digit OTP.
  */
 export function generateOtp(): string {
+  // In development, return a fixed OTP for easy testing
+  if (process.env.NODE_ENV !== 'production') return '123456';
+
   const min = 100000;
   const max = 999999;
   const otp = Math.floor(Math.random() * (max - min + 1)) + min;
@@ -100,14 +103,19 @@ export async function sendOtpSms(phone: string, otp: string, purpose: string): P
   const message = `${purposeMessages[purpose] || 'Your OYA verification code'} is: ${otp}. Valid for 5 minutes. Do not share this code.`;
 
   try {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[DEV OTP] Bypassing real SMS. Use OTP ${otp} for phone ${phone}`);
+      return; 
+    }
     await sms.send({
       to: [phone],
       message,
       from: process.env.AT_SENDER_ID || 'OYA',
     });
   } catch (err) {
-    // Log but don't throw — OTP is stored in Redis, SMS delivery can be retried
     console.error('[OTP] SMS delivery failed:', err);
-    throw new Error('Failed to deliver OTP. Please try again.');
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('Failed to deliver OTP. Please try again.');
+    }
   }
 }

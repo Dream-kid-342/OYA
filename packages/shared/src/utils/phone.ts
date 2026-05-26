@@ -74,7 +74,9 @@ export function normalizeKenyanPhone(phone: string): PhoneValidationResult {
 export function validateAndNormalize(phone: string): string {
   const result = normalizeKenyanPhone(phone);
   if (!result.valid || !result.normalized) {
-    throw new Error(result.error ?? 'Invalid phone number');
+    const err: any = new Error(result.error ?? 'Invalid phone number');
+    err.statusCode = 400;
+    throw err;
   }
   return result.normalized;
 }

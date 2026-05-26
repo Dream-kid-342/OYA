@@ -1,5 +1,6 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../data/auth_repository.dart';
+import 'package:mobile/features/auth/data/auth_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthState {
@@ -30,18 +31,20 @@ class AuthState {
   }
 }
 
-class AuthNotifier extends StateNotifier<AuthState> {
-  final AuthRepository _repository;
+class AuthNotifier extends Notifier<AuthState> {
+  late AuthRepository _repository;
 
-  AuthNotifier(this._repository) : super(AuthState(isLoading: true)) {
+  @override
+  AuthState build() {
+    _repository = ref.watch(authRepositoryProvider);
     _init();
+    return AuthState(isLoading: true);
   }
 
   Future<void> _init() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
     if (token != null) {
-      // In a real app, we would fetch the user profile here using the token
       state = state.copyWith(isLoading: false, isAuthenticated: true);
     } else {
       state = state.copyWith(isLoading: false, isAuthenticated: false);
@@ -57,12 +60,32 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isAuthenticated: true,
         user: data['user'],
       );
+    } on DioException catch (e) {
+      String errorMessage = 'An error occurred';
+      if (e.response != null && e.response?.data != null) {
+        if (e.response?.data is Map && e.response?.data['message'] != null) {
+          errorMessage = e.response?.data['message'];
+          if (e.response?.data['details'] != null) {
+            errorMessage += ': ${e.response?.data['details']}';
+          }
+        } else {
+          errorMessage = e.response?.data.toString() ?? 'Server error';
+        }
+      } else {
+        errorMessage = e.message ?? 'Network error';
+      }
+      
+      state = state.copyWith(
+        isLoading: false,
+        error: errorMessage,
+      );
+      throw Exception(errorMessage);
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
       );
-      rethrow;
+      throw Exception(e.toString());
     }
   }
 
@@ -73,6 +96,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 }
 
-final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  return AuthNotifier(ref.watch(authRepositoryProvider));
+final authProvider = NotifierProvider<AuthNotifier, AuthState>(() {
+  return AuthNotifier();
 });

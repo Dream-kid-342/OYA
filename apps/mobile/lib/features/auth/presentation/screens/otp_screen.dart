@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/app_theme.dart';
-import '../providers/auth_provider.dart';
+import 'package:mobile/core/theme/app_theme.dart';
+import 'package:mobile/features/auth/presentation/providers/auth_provider.dart';
+import 'package:mobile/features/auth/data/auth_repository.dart';
 
 class OtpScreen extends ConsumerStatefulWidget {
   final String phoneNumber;

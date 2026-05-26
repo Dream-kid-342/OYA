@@ -70,7 +70,17 @@ export async function buildApp() {
   await app.register(authRoutes, { prefix: '/auth' });
 
   // ─── Error handler ───────────────────────────────────────
-  app.setErrorHandler((error, req, reply) => {
+  app.setErrorHandler((error: any, req, reply) => {
+    if (error.name === 'ZodError' || error.issues) {
+      req.log.warn({ url: req.url }, 'Validation error');
+      return reply.status(400).send({
+        statusCode: 400,
+        error: 'Bad Request',
+        message: 'Validation failed',
+        details: error.issues || error.message,
+      });
+    }
+
     if (process.env.SENTRY_DSN) Sentry.captureException(error);
     req.log.error({ err: error, url: req.url }, 'Unhandled error');
 

@@ -11,6 +11,7 @@ import { getRedisClient, RedisKeys } from '@oya/shared';
 import { verifyAccessToken, isTokenBlacklisted } from './services/token.service';
 import { prisma } from '@oya/database';
 import dashboardRoutes from './routes/dashboard.routes';
+import adminRoutes from './routes/admin.routes';
 export async function buildGateway() {
   const app = Fastify({
     logger: { level: process.env.LOG_LEVEL || 'info' },
@@ -144,6 +145,11 @@ export async function buildGateway() {
   // ─── Admin Dashboard Routes ──────────────────────────────
   await app.register(dashboardRoutes, {
     prefix: '/api/v1/admin/dashboard',
+  });
+
+  // ─── Admin Data Routes ──────────────────────────────
+  await app.register(adminRoutes, {
+    prefix: '/api/v1/admin',
   });
 
   // ─── Prometheus metrics ───────────────────────────────

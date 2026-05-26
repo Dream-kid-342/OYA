@@ -272,6 +272,18 @@ services:
       - oya-network
     restart: unless-stopped
 
+  # ─── Mobile App (Web Build) ───────────────────────────────
+  mobile-app:
+    build:
+      context: ./apps/mobile
+      dockerfile: Dockerfile
+    container_name: oya-mobile-app
+    ports:
+      - "8080:80"
+    networks:
+      - oya-network
+    restart: unless-stopped
+
   # ─── NGINX Reverse Proxy ──────────────────────────────────
   nginx:
     build:

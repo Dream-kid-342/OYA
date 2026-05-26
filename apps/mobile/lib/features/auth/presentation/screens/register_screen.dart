@@ -1,8 +1,10 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/app_theme.dart';
-import '../providers/auth_provider.dart';
+import 'package:mobile/core/theme/app_theme.dart';
+import 'package:mobile/features/auth/presentation/providers/auth_provider.dart';
+import 'package:mobile/features/auth/data/auth_repository.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -64,6 +66,23 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       
       if (mounted) {
         context.push('/otp', extra: _phoneCtrl.text.trim());
+      }
+    } on DioException catch (e) {
+      if (mounted) {
+        String errorMessage = 'An error occurred';
+        if (e.response != null && e.response?.data != null) {
+          if (e.response?.data is Map && e.response?.data['message'] != null) {
+            errorMessage = e.response?.data['message'];
+            if (e.response?.data['details'] != null) {
+              errorMessage += ': ${e.response?.data['details']}';
+            }
+          } else {
+            errorMessage = e.response?.data.toString() ?? 'Server error';
+          }
+        } else {
+          errorMessage = e.message ?? 'Network error';
+        }
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage)));
       }
     } catch (e) {
       if (mounted) {

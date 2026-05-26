@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/auth/presentation/screens/splash_screen.dart';
-import '../../features/auth/presentation/screens/login_screen.dart';
-import '../../features/auth/presentation/screens/register_screen.dart';
-import '../../features/auth/presentation/screens/otp_screen.dart';
-import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
-import '../../features/loans/presentation/screens/loans_screen.dart';
-import '../../features/payments/presentation/screens/payments_screen.dart';
-import '../../features/profile/presentation/screens/profile_screen.dart';
-import '../../features/auth/presentation/providers/auth_provider.dart';
-import '../theme/app_theme.dart';
+import 'package:mobile/features/auth/presentation/screens/splash_screen.dart';
+import 'package:mobile/features/auth/presentation/screens/login_screen.dart';
+import 'package:mobile/features/auth/presentation/screens/register_screen.dart';
+import 'package:mobile/features/auth/presentation/screens/otp_screen.dart';
+import 'package:mobile/features/dashboard/presentation/screens/dashboard_screen.dart';
+import 'package:mobile/features/loans/presentation/screens/loans_screen.dart';
+import 'package:mobile/features/payments/presentation/screens/payments_screen.dart';
+import 'package:mobile/features/profile/presentation/screens/profile_screen.dart';
+import 'package:mobile/features/auth/presentation/providers/auth_provider.dart';
+import 'package:mobile/core/theme/app_theme.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
