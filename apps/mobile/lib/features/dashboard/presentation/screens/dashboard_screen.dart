@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/core/theme/app_theme.dart';
 import 'package:mobile/features/auth/presentation/providers/auth_provider.dart';
@@ -13,6 +15,7 @@ class DashboardScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Image.asset('assets/images/logo.png', height: 28, errorBuilder: (c,e,s) => const Icon(Icons.business)),
             const SizedBox(width: 12),
@@ -20,11 +23,17 @@ class DashboardScreen extends ConsumerWidget {
           ],
         ),
         actions: [
-          IconButton(icon: const Icon(Icons.notifications), onPressed: () {}),
+          IconButton(icon: const Icon(Icons.notifications), onPressed: () {
+            HapticFeedback.lightImpact();
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No new notifications')));
+          }),
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () async {},
+        onRefresh: () async {
+          HapticFeedback.lightImpact();
+          await Future.delayed(const Duration(seconds: 1));
+        },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(24),
@@ -55,7 +64,10 @@ class DashboardScreen extends ConsumerWidget {
                                 backgroundColor: AppTheme.accentGold,
                                 foregroundColor: AppTheme.primaryGreen,
                               ),
-                              onPressed: () {},
+                              onPressed: () {
+                                HapticFeedback.selectionClick();
+                                context.go('/loans');
+                              },
                               child: const Text('Apply Now'),
                             ),
                           ),
@@ -66,7 +78,10 @@ class DashboardScreen extends ConsumerWidget {
                                 foregroundColor: Colors.white,
                                 side: const BorderSide(color: Colors.white),
                               ),
-                              onPressed: () {},
+                              onPressed: () {
+                                HapticFeedback.selectionClick();
+                                context.go('/payments');
+                              },
                               child: const Text('Repay Loan'),
                             ),
                           ),

@@ -121,7 +121,7 @@ export async function buildGateway() {
   await app.register(httpProxy, {
     upstream: process.env.LOAN_SERVICE_URL || 'http://loan-service:3002',
     prefix: '/api/v1/loans',
-    rewritePrefix: '/loans',
+    rewritePrefix: '/api/v1/loans',
     http2: false,
     undici: false,
   });

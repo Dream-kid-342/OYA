@@ -12,9 +12,13 @@ app.register(cors, { origin: true });
 app.register(helmet);
 app.register(multipart);
 
+import loanRoutes from "./routes/loan.routes";
+
 app.get("/health", async () => {
   return { status: "ok", service: "loan-service" };
 });
+
+app.register(loanRoutes, { prefix: "/api/v1/loans" });
 
 const start = async () => {
   try {

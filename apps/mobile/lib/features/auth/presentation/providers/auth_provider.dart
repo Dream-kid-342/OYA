@@ -79,13 +79,13 @@ class AuthNotifier extends Notifier<AuthState> {
         isLoading: false,
         error: errorMessage,
       );
-      throw Exception(errorMessage);
+      throw errorMessage;
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
       );
-      throw Exception(e.toString());
+      throw e.toString();
     }
   }
 

@@ -22,7 +22,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       // Router will automatically redirect to /dashboard because auth state changed to authenticated
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Login Failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppTheme.errorRed));
       }
     }
   }
