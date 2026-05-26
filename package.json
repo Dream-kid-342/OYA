@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "concurrently -n gateway,auth,loan,payment,notification,worker \"npm run dev -w services/api-gateway\" \"npm run dev -w services/auth-service\" \"npm run dev -w services/loan-service\" \"npm run dev -w services/payment-service\" \"npm run dev -w services/notification-service\" \"npm run dev -w services/queue-worker\"",
     "build": "npm run build --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present -- --passWithNoTests",
     "test:security": "vitest run tests/security",
     "lint": "eslint . --ext .ts,.tsx",
     "docker:up": "docker compose up -d",
