@@ -1,0 +1,339 @@
+version: "3.9"
+
+networks:
+  oya-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+  postgres-data:
+  prometheus-data:
+  grafana-data:
+  loki-data:
+  nginx-certs:
+
+services:
+  # ─── Database (external Supabase in production) ────────────
+  # For local dev only — use Supabase CLI for production-parity
+  postgres:
+    image: postgres:15-alpine
+    container_name: oya-postgres
+    environment:
+      POSTGRES_DB: oya_microcredit
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - oya-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Redis ────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: oya-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - oya-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+
+  # ─── API Gateway ──────────────────────────────────────────
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    container_name: oya-api-gateway
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3000
+      REDIS_URL: redis://redis:6379
+      AUTH_SERVICE_URL: http://auth-service:3001
+      LOAN_SERVICE_URL: http://loan-service:3002
+      PAYMENT_SERVICE_URL: http://payment-service:3003
+      NOTIFICATION_SERVICE_URL: http://notification-service:3004
+      JWT_SECRET: ${JWT_SECRET}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+      SENTRY_DSN: ${SENTRY_DSN}
+    ports:
+      - "3000:3000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - oya-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+
+  # ─── Auth Service ─────────────────────────────────────────
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    container_name: oya-auth-service
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3001
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-900}
+      JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-2592000}
+      AT_API_KEY: ${AT_API_KEY}
+      AT_USERNAME: ${AT_USERNAME}
+      AT_SENDER_ID: ${AT_SENDER_ID:-OYA}
+      SENTRY_DSN: ${SENTRY_DSN}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - oya-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+
+  # ─── Loan Service ─────────────────────────────────────────
+  loan-service:
+    build:
+      context: ./services/loan-service
+      dockerfile: Dockerfile
+    container_name: oya-loan-service
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3002
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: redis://redis:6379
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      SUPABASE_STORAGE_BUCKET: ${SUPABASE_STORAGE_BUCKET}
+      SENTRY_DSN: ${SENTRY_DSN}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - oya-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+
+  # ─── Payment Service ──────────────────────────────────────
+  payment-service:
+    build:
+      context: ./services/payment-service
+      dockerfile: Dockerfile
+    container_name: oya-payment-service
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3003
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: redis://redis:6379
+      DARAJA_ENV: ${DARAJA_ENV:-sandbox}
+      DARAJA_CONSUMER_KEY: ${DARAJA_CONSUMER_KEY}
+      DARAJA_CONSUMER_SECRET: ${DARAJA_CONSUMER_SECRET}
+      DARAJA_BUSINESS_SHORT_CODE: ${DARAJA_BUSINESS_SHORT_CODE}
+      DARAJA_PASSKEY: ${DARAJA_PASSKEY}
+      DARAJA_CALLBACK_URL: ${DARAJA_CALLBACK_URL}
+      DARAJA_ACCOUNT_REFERENCE: ${DARAJA_ACCOUNT_REFERENCE}
+      DARAJA_TRANSACTION_DESC: ${DARAJA_TRANSACTION_DESC}
+      SENTRY_DSN: ${SENTRY_DSN}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - oya-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+
+  # ─── Notification Service ─────────────────────────────────
+  notification-service:
+    build:
+      context: ./services/notification-service
+      dockerfile: Dockerfile
+    container_name: oya-notification-service
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3004
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: redis://redis:6379
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
+      FIREBASE_PRIVATE_KEY: ${FIREBASE_PRIVATE_KEY}
+      FIREBASE_CLIENT_EMAIL: ${FIREBASE_CLIENT_EMAIL}
+      AT_API_KEY: ${AT_API_KEY}
+      AT_USERNAME: ${AT_USERNAME}
+      AT_SENDER_ID: ${AT_SENDER_ID:-OYA}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-resend}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      EMAIL_FROM: ${EMAIL_FROM}
+      SENTRY_DSN: ${SENTRY_DSN}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - oya-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+
+  # ─── Queue Worker ─────────────────────────────────────────
+  queue-worker:
+    build:
+      context: ./services/queue-worker
+      dockerfile: Dockerfile
+    container_name: oya-queue-worker
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: redis://redis:6379
+      NOTIFICATION_SERVICE_URL: http://notification-service:3004
+      LOAN_SERVICE_URL: http://loan-service:3002
+      PAYMENT_SERVICE_URL: http://payment-service:3003
+      SENTRY_DSN: ${SENTRY_DSN}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - oya-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+
+  # ─── Admin Dashboard ──────────────────────────────────────
+  admin-dashboard:
+    build:
+      context: ./apps/admin-dashboard
+      dockerfile: Dockerfile
+    container_name: oya-admin-dashboard
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+      VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+      VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
+    ports:
+      - "5173:80"
+    networks:
+      - oya-network
+    restart: unless-stopped
+
+  # ─── NGINX Reverse Proxy ──────────────────────────────────
+  nginx:
+    build:
+      context: ./infrastructure/nginx
+      dockerfile: Dockerfile
+    container_name: oya-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - nginx-certs:/etc/letsencrypt
+    depends_on:
+      - api-gateway
+      - admin-dashboard
+    networks:
+      - oya-network
+    restart: unless-stopped
+
+  # ─── Prometheus ───────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: oya-prometheus
+    volumes:
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - oya-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+  # ─── Grafana ──────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    container_name: oya-grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning
+    ports:
+      - "3030:3000"
+    networks:
+      - oya-network
+    restart: unless-stopped
+
+  # ─── Loki ─────────────────────────────────────────────────
+  loki:
+    image: grafana/loki:latest
+    container_name: oya-loki
+    volumes:
+      - ./infrastructure/loki/loki-config.yml:/etc/loki/local-config.yaml
+      - loki-data:/loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - oya-network
+    restart: unless-stopped

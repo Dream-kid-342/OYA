@@ -1,0 +1,34 @@
+{
+  "name": "oya-microcredit",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "services/*",
+    "apps/admin-dashboard"
+  ],
+  "scripts": {
+    "dev": "concurrently -n gateway,auth,loan,payment,notification,worker \"npm run dev -w services/api-gateway\" \"npm run dev -w services/auth-service\" \"npm run dev -w services/loan-service\" \"npm run dev -w services/payment-service\" \"npm run dev -w services/notification-service\" \"npm run dev -w services/queue-worker\"",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:security": "vitest run tests/security",
+    "lint": "eslint . --ext .ts,.tsx",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:build": "docker compose build",
+    "db:migrate": "npm run db:migrate -w packages/database",
+    "db:generate": "npm run db:generate -w packages/database",
+    "db:seed": "npm run db:seed -w packages/database"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "concurrently": "^8.2.2",
+    "eslint": "^8.57.0",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
+}

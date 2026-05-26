@@ -1,0 +1,77 @@
+name: Deploy — Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "deploy" to confirm'
+        required: true
+
+jobs:
+  gate:
+    name: Deployment Gate
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event.inputs.confirm == 'deploy'
+    steps:
+      - name: Validate branch and confirmation
+        run: echo "Deployment approved on main branch"
+
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [gate]
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_SERVER_HOST }}
+          username: ${{ secrets.PROD_SERVER_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            cd /opt/oya-microcredit
+
+            # Pull latest images
+            docker compose pull
+
+            # Zero-downtime rolling update (one service at a time)
+            docker compose up -d --no-deps api-gateway
+            sleep 5
+            docker compose up -d --no-deps auth-service
+            sleep 5
+            docker compose up -d --no-deps loan-service
+            sleep 5
+            docker compose up -d --no-deps payment-service
+            sleep 5
+            docker compose up -d --no-deps notification-service
+            sleep 5
+            docker compose up -d --no-deps queue-worker
+
+      - name: Health check
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_SERVER_HOST }}
+          username: ${{ secrets.PROD_SERVER_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            sleep 10
+            curl -f https://api.oyamicrocredit.co.ke/health || exit 1
+            echo "✅ Health check passed"
+
+      - name: Rollback on failure
+        if: failure()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_SERVER_HOST }}
+          username: ${{ secrets.PROD_SERVER_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            cd /opt/oya-microcredit
+            docker compose down
+            # Pull previous tag
+            git checkout HEAD~1 docker-compose.yml
+            docker compose up -d
+            echo "⚠️ Rolled back to previous version"

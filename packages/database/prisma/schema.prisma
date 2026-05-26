@@ -1,0 +1,496 @@
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ─────────────────────────────────────────────────
+
+enum KycStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum LoanStatus {
+  DRAFT
+  SUBMITTED
+  KYC_REVIEW
+  CREDIT_REVIEW
+  APPROVED
+  DISBURSED
+  ACTIVE
+  CLOSED
+  REJECTED
+  DEFAULTED
+}
+
+enum InstallmentStatus {
+  UNPAID
+  PARTIAL
+  PAID
+}
+
+enum PaymentRequestStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  TIMEOUT
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  LOAN_OFFICER
+  COLLECTIONS_OFFICER
+  FINANCE_ADMIN
+  SUPPORT_AGENT
+}
+
+enum ActorType {
+  USER
+  ADMIN
+  SYSTEM
+}
+
+enum NotificationChannel {
+  PUSH
+  SMS
+  EMAIL
+}
+
+enum SecurityEventType {
+  FAILED_LOGIN
+  RATE_LIMIT_EXCEEDED
+  SUSPICIOUS_ACTIVITY
+  NEW_DEVICE_LOGIN
+  PASSWORD_CHANGED
+  SESSION_REVOKED
+  OTP_ABUSE
+  IDOR_ATTEMPT
+  PAYMENT_ANOMALY
+}
+
+enum PenaltyType {
+  FLAT
+  PERCENTAGE
+}
+
+enum LoanPurpose {
+  STOCK_PURCHASE
+  EQUIPMENT
+  RENT
+  WORKING_CAPITAL
+  OTHER
+}
+
+enum BusinessType {
+  RETAIL
+  FOOD
+  TRANSPORT
+  AGRICULTURE
+  SERVICES
+  MANUFACTURING
+  OTHER
+}
+
+// ─── Users ─────────────────────────────────────────────────
+
+model User {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  fullName          String    @map("full_name") @db.VarChar(100)
+  nationalId        String    @unique @map("national_id") @db.VarChar(8)
+  phoneNumber       String    @unique @map("phone_number") @db.VarChar(15)
+  passwordHash      String    @map("password_hash") @db.VarChar(255)
+  businessName      String?   @map("business_name") @db.VarChar(100)
+  businessType      BusinessType? @map("business_type")
+  businessLocation  String?   @map("business_location") @db.VarChar(100)
+  businessDescription String? @map("business_description") @db.Text
+  profilePhotoPath  String?   @map("profile_photo_path") @db.Text
+  kycStatus         KycStatus @default(PENDING) @map("kyc_status")
+  status            UserStatus @default(ACTIVE)
+  fcmToken          String?   @map("fcm_token") @db.Text
+  dateOfBirth       DateTime? @map("date_of_birth") @db.Date
+  gender            String?   @db.VarChar(10)
+  email             String?   @db.VarChar(200)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt         DateTime? @map("deleted_at") @db.Timestamptz
+
+  // Relations
+  loans             Loan[]
+  repayments        Repayment[]
+  sessions          Session[]
+  notifications     Notification[]
+  paymentRequests   PaymentRequest[]
+  securityEvents    SecurityEvent[]
+
+  @@map("users")
+  @@index([status])
+  @@index([kycStatus, status])
+  @@index([deletedAt])
+}
+
+// ─── Admins ────────────────────────────────────────────────
+
+model Admin {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  fullName      String    @map("full_name") @db.VarChar(100)
+  email         String    @unique @db.VarChar(200)
+  passwordHash  String    @map("password_hash") @db.VarChar(255)
+  role          AdminRole
+  isActive      Boolean   @default(true) @map("is_active")
+  lastLoginAt   DateTime? @map("last_login_at") @db.Timestamptz
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz
+
+  // Relations
+  approvedLoans   Loan[]   @relation("ApprovedLoans")
+  disbursedLoans  Loan[]   @relation("DisbursedLoans")
+  waivedPenalties Penalty[] @relation("WaivedPenalties")
+  auditLogs       AuditLog[] @relation("AdminAuditLogs")
+  revokedSessions Session[]
+
+  @@map("admins")
+  @@index([role, isActive])
+}
+
+// ─── Loan Products ─────────────────────────────────────────
+
+model LoanProduct {
+  id                 String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name               String      @db.VarChar(100)
+  minAmount          Decimal     @map("min_amount") @db.Decimal(15, 2)
+  maxAmount          Decimal     @map("max_amount") @db.Decimal(15, 2)
+  interestRate       Decimal     @map("interest_rate") @db.Decimal(5, 4)
+  maxWeeks           Int         @map("max_weeks")
+  penaltyType        PenaltyType @map("penalty_type")
+  penaltyAmount      Decimal?    @map("penalty_amount") @db.Decimal(15, 2)
+  penaltyPercentage  Decimal?    @map("penalty_percentage") @db.Decimal(5, 4)
+  isActive           Boolean     @default(true) @map("is_active")
+  createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+
+  loans              Loan[]
+
+  @@map("loan_products")
+}
+
+// ─── Loans ─────────────────────────────────────────────────
+
+model Loan {
+  id                 String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  referenceNumber    String      @unique @map("reference_number") @db.VarChar(20)
+  userId             String      @map("user_id") @db.Uuid
+  loanProductId      String?     @map("loan_product_id") @db.Uuid
+  principalAmount    Decimal     @map("principal_amount") @db.Decimal(15, 2)
+  interestRate       Decimal     @map("interest_rate") @db.Decimal(5, 4)
+  totalInterest      Decimal     @map("total_interest") @db.Decimal(15, 2)
+  totalAmount        Decimal     @map("total_amount") @db.Decimal(15, 2)
+  totalRepaid        Decimal     @default(0) @map("total_repaid") @db.Decimal(15, 2)
+  balanceRemaining   Decimal?    @map("balance_remaining") @db.Decimal(15, 2)
+  totalPenalties     Decimal     @default(0) @map("total_penalties") @db.Decimal(15, 2)
+  numberOfWeeks      Int         @map("number_of_weeks")
+  weeklyInstallment  Decimal     @map("weekly_installment") @db.Decimal(15, 2)
+  disbursementDate   DateTime?   @map("disbursement_date") @db.Date
+  expectedCloseDate  DateTime?   @map("expected_close_date") @db.Date
+  actualCloseDate    DateTime?   @map("actual_close_date") @db.Date
+  status             LoanStatus  @default(DRAFT)
+  purpose            LoanPurpose?
+  monthlyRevenue     Decimal?    @map("monthly_revenue") @db.Decimal(15, 2)
+  numberOfEmployees  Int?        @map("number_of_employees")
+  approvedBy         String?     @map("approved_by") @db.Uuid
+  disbursedBy        String?     @map("disbursed_by") @db.Uuid
+  rejectionReason    String?     @map("rejection_reason") @db.Text
+  createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt          DateTime?   @map("deleted_at") @db.Timestamptz
+
+  // Relations
+  user               User        @relation(fields: [userId], references: [id])
+  loanProduct        LoanProduct? @relation(fields: [loanProductId], references: [id])
+  approver           Admin?      @relation("ApprovedLoans", fields: [approvedBy], references: [id])
+  disburser          Admin?      @relation("DisbursedLoans", fields: [disbursedBy], references: [id])
+  installments       Installment[]
+  repayments         Repayment[]
+  penalties          Penalty[]
+  paymentRequests    PaymentRequest[]
+  auditTrail         LoanAuditTrail[]
+
+  @@map("loans")
+  @@index([userId])
+  @@index([status])
+  @@index([referenceNumber])
+  @@index([userId, status])
+  @@index([deletedAt])
+}
+
+// ─── Loan Audit Trail ─────────────────────────────────────
+
+model LoanAuditTrail {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  loanId      String    @map("loan_id") @db.Uuid
+  fromStatus  LoanStatus? @map("from_status")
+  toStatus    LoanStatus  @map("to_status")
+  actorType   ActorType   @map("actor_type")
+  actorId     String      @map("actor_id") @db.Uuid
+  notes       String?     @db.Text
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz
+
+  loan        Loan        @relation(fields: [loanId], references: [id])
+
+  @@map("loan_audit_trail")
+  @@index([loanId])
+}
+
+// ─── Installments ─────────────────────────────────────────
+
+model Installment {
+  id                 String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  loanId             String            @map("loan_id") @db.Uuid
+  installmentNumber  Int               @map("installment_number")
+  dueDate            DateTime          @map("due_date") @db.Date
+  amountDue          Decimal           @map("amount_due") @db.Decimal(15, 2)
+  amountPaid         Decimal           @default(0) @map("amount_paid") @db.Decimal(15, 2)
+  status             InstallmentStatus @default(UNPAID)
+  paidAt             DateTime?         @map("paid_at") @db.Timestamptz
+  createdAt          DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+
+  loan               Loan              @relation(fields: [loanId], references: [id])
+  repayments         Repayment[]
+  penalties          Penalty[]
+
+  @@map("installments")
+  @@index([loanId])
+  @@index([dueDate, status])
+  @@unique([loanId, installmentNumber])
+}
+
+// ─── Repayments ───────────────────────────────────────────
+
+model Repayment {
+  id                       String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  loanId                   String    @map("loan_id") @db.Uuid
+  userId                   String    @map("user_id") @db.Uuid
+  amount                   Decimal   @db.Decimal(15, 2)
+  mpesaReceiptNumber       String    @unique @map("mpesa_receipt_number") @db.VarChar(20)
+  phoneNumber              String    @map("phone_number") @db.VarChar(15)
+  paymentMethod            String    @default("MPESA") @map("payment_method") @db.VarChar(20)
+  checkoutRequestId        String?   @map("checkout_request_id") @db.VarChar(100)
+  transactionDate          DateTime  @map("transaction_date") @db.Timestamptz
+  appliedToInstallmentId   String?   @map("applied_to_installment_id") @db.Uuid
+  reconciled               Boolean   @default(false)
+  createdAt                DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  loan                     Loan      @relation(fields: [loanId], references: [id])
+  user                     User      @relation(fields: [userId], references: [id])
+  installment              Installment? @relation(fields: [appliedToInstallmentId], references: [id])
+
+  @@map("repayments")
+  @@index([loanId])
+  @@index([mpesaReceiptNumber])
+  @@index([checkoutRequestId])
+}
+
+// ─── Penalties ────────────────────────────────────────────
+
+model Penalty {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  loanId         String    @map("loan_id") @db.Uuid
+  installmentId  String    @map("installment_id") @db.Uuid
+  daysOverdue    Int       @map("days_overdue")
+  amount         Decimal   @db.Decimal(15, 2)
+  reason         String?   @db.Text
+  waived         Boolean   @default(false)
+  waivedBy       String?   @map("waived_by") @db.Uuid
+  waivedAt       DateTime? @map("waived_at") @db.Timestamptz
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  loan           Loan      @relation(fields: [loanId], references: [id])
+  installment    Installment @relation(fields: [installmentId], references: [id])
+  waivedByAdmin  Admin?    @relation("WaivedPenalties", fields: [waivedBy], references: [id])
+
+  @@map("penalties")
+  @@index([loanId])
+  @@index([installmentId])
+}
+
+// ─── Sessions ─────────────────────────────────────────────
+
+model Session {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String    @map("user_id") @db.Uuid
+  deviceFingerprint String    @map("device_fingerprint") @db.VarChar(64)
+  deviceName        String?   @map("device_name") @db.VarChar(100)
+  deviceOs          String?   @map("device_os") @db.VarChar(50)
+  appVersion        String?   @map("app_version") @db.VarChar(20)
+  ipAddress         String?   @map("ip_address") @db.VarChar(45)
+  refreshTokenHash  String?   @map("refresh_token_hash") @db.VarChar(64)
+  lastActiveAt      DateTime  @default(now()) @map("last_active_at") @db.Timestamptz
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  isActive          Boolean   @default(true) @map("is_active")
+  revokedAt         DateTime? @map("revoked_at") @db.Timestamptz
+  revokedBy         String?   @map("revoked_by") @db.Uuid
+
+  user              User      @relation(fields: [userId], references: [id])
+  revokedByAdmin    Admin?    @relation(fields: [revokedBy], references: [id])
+
+  @@map("sessions")
+  @@index([userId, isActive])
+  @@index([deviceFingerprint])
+  @@index([refreshTokenHash])
+}
+
+// ─── Audit Logs ───────────────────────────────────────────
+// IMMUTABLE — no updatedAt, no deletedAt
+
+model AuditLog {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actorType   ActorType @map("actor_type")
+  actorId     String    @map("actor_id") @db.Uuid
+  action      String    @db.VarChar(100)
+  entityType  String    @map("entity_type") @db.VarChar(50)
+  entityId    String?   @map("entity_id") @db.Uuid
+  oldValues   Json?     @map("old_values")
+  newValues   Json?     @map("new_values")
+  ipAddress   String?   @map("ip_address") @db.VarChar(45)
+  userAgent   String?   @map("user_agent") @db.Text
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  // Read-only relation for admin log viewing
+  admin       Admin?    @relation("AdminAuditLogs", fields: [actorId], references: [id], map: "fk_audit_admin")
+
+  @@map("audit_logs")
+  @@index([actorId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+// ─── Security Events ──────────────────────────────────────
+
+model SecurityEvent {
+  id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventType         SecurityEventType @map("event_type")
+  ipAddress         String?           @map("ip_address") @db.VarChar(45)
+  userId            String?           @map("user_id") @db.Uuid
+  deviceFingerprint String?           @map("device_fingerprint") @db.VarChar(64)
+  userAgent         String?           @map("user_agent") @db.Text
+  metadata          Json?
+  createdAt         DateTime          @default(now()) @map("created_at") @db.Timestamptz
+
+  user              User?             @relation(fields: [userId], references: [id])
+
+  @@map("security_events")
+  @@index([ipAddress])
+  @@index([userId])
+  @@index([eventType, createdAt])
+}
+
+// ─── Payment Requests ─────────────────────────────────────
+
+model PaymentRequest {
+  id                  String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId              String               @map("user_id") @db.Uuid
+  loanId              String               @map("loan_id") @db.Uuid
+  amount              Decimal              @db.Decimal(15, 2)
+  phoneNumber         String               @map("phone_number") @db.VarChar(15)
+  idempotencyKey      String               @unique @map("idempotency_key") @db.VarChar(64)
+  checkoutRequestId   String?              @unique @map("checkout_request_id") @db.VarChar(100)
+  merchantRequestId   String?              @map("merchant_request_id") @db.VarChar(100)
+  status              PaymentRequestStatus @default(PENDING)
+  darajaResponse      Json?                @map("daraja_response")
+  callbackReceivedAt  DateTime?            @map("callback_received_at") @db.Timestamptz
+  createdAt           DateTime             @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime             @updatedAt @map("updated_at") @db.Timestamptz
+
+  user                User                 @relation(fields: [userId], references: [id])
+  loan                Loan                 @relation(fields: [loanId], references: [id])
+
+  @@map("payment_requests")
+  @@index([userId, loanId])
+  @@index([checkoutRequestId])
+  @@index([status, createdAt])
+}
+
+// ─── Payment Callbacks Raw ────────────────────────────────
+// Store raw callback body BEFORE any processing
+
+model PaymentCallbackRaw {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  checkoutRequestId String?   @map("checkout_request_id") @db.VarChar(100)
+  rawBody           Json      @map("raw_body")
+  sourceIp          String?   @map("source_ip") @db.VarChar(45)
+  processed         Boolean   @default(false)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("payment_callbacks_raw")
+  @@index([checkoutRequestId])
+  @@index([processed, createdAt])
+}
+
+// ─── Notifications ────────────────────────────────────────
+
+model Notification {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  title       String    @db.VarChar(200)
+  body        String    @db.Text
+  type        String    @db.VarChar(50)
+  data        Json?
+  sentVia     String[]  @map("sent_via")  // ['PUSH', 'SMS', 'EMAIL']
+  delivered   Boolean   @default(false)
+  readAt      DateTime? @map("read_at") @db.Timestamptz
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+  @@index([userId, readAt])
+  @@index([createdAt])
+}
+
+// ─── KYC Documents ────────────────────────────────────────
+
+model KycDocument {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  documentType String    @map("document_type") @db.VarChar(50) // NATIONAL_ID_FRONT, SELFIE, BUSINESS_PROOF
+  storagePath  String    @map("storage_path") @db.Text
+  status       KycStatus @default(PENDING)
+  reviewedBy   String?   @map("reviewed_by") @db.Uuid
+  reviewedAt   DateTime? @map("reviewed_at") @db.Timestamptz
+  rejectionReason String? @map("rejection_reason") @db.Text
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("kyc_documents")
+  @@index([userId, documentType])
+}
+
+// ─── App Version Config ───────────────────────────────────
+
+model AppVersionConfig {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  platform             String   @db.VarChar(10) // android, ios
+  minimumVersion       String   @map("minimum_version") @db.VarChar(20)
+  latestVersion        String   @map("latest_version") @db.VarChar(20)
+  forceUpdateBelow     String   @map("force_update_below") @db.VarChar(20)
+  updateMessage        String?  @map("update_message") @db.Text
+  updatedAt            DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([platform])
+  @@map("app_version_config")
+}

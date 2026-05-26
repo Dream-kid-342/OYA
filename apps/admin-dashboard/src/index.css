@@ -1,0 +1,205 @@
+/* ─── OYA Brand Design System ──────────────────────────── */
+:root {
+  /* Brand Colors */
+  --color-primary: #4A2E13;
+  --color-primary-dark: #4A2E13;
+  --color-primary-light: #FAFAD2;
+  --color-accent: #F9A825;
+  --color-accent-dark: #F57F17;
+  --color-error: #C62828;
+  --color-success: #388E3C;
+  --color-warning: #F57F17;
+  --color-white: #FFFFFF;
+  --color-bg: #F5F5F5;
+  --color-text-primary: #212121;
+  --color-text-secondary: #616161;
+  --color-divider: #E0E0E0;
+  --color-card-bg: #FFFFFF;
+
+  /* Typography */
+  --font-heading: 'Poppins', sans-serif;
+  --font-body: 'Inter', sans-serif;
+
+  /* Spacing (8px grid) */
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-5: 40px;
+  --space-6: 48px;
+
+  /* Border radius */
+  --radius-card: 8px;
+  --radius-input: 4px;
+  --radius-pill: 24px;
+
+  /* Shadows */
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-dropdown: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+/* ─── Ant Design Overrides ────────────────────────────── */
+
+/* Primary color customization via CSS (supplemented by theme token) */
+.ant-btn-primary {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+}
+
+.ant-btn-primary:hover {
+  background-color: var(--color-primary-dark) !important;
+}
+
+.ant-layout-sider {
+  background: var(--color-primary-dark) !important;
+}
+
+.ant-menu-dark {
+  background: var(--color-primary-dark) !important;
+}
+
+.ant-menu-dark .ant-menu-item-selected {
+  background-color: var(--color-primary) !important;
+}
+
+/* ─── Stat cards ──────────────────────────────────────── */
+.stat-card {
+  background: var(--color-card-bg);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.stat-card .stat-value {
+  font-family: var(--font-heading);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.stat-card .stat-label {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+
+/* ─── Status badges ───────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-heading);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge-active    { background: #FAFAD2; color: #4A2E13; }
+.badge-pending   { background: #FFF8E1; color: #F57F17; }
+.badge-overdue   { background: #FFEBEE; color: #C62828; }
+.badge-closed    { background: #E3F2FD; color: #1565C0; }
+.badge-rejected  { background: #FCE4EC; color: #B71C1C; }
+.badge-verified  { background: #FAFAD2; color: #4A2E13; }
+.badge-suspended { background: #F3E5F5; color: #6A1B9A; }
+
+/* ─── Page layout ────────────────────────────────────── */
+.page-header {
+  margin-bottom: var(--space-3);
+}
+
+.page-header h1 {
+  font-size: 24px;
+  font-family: var(--font-heading);
+}
+
+.page-header p {
+  color: var(--color-text-secondary);
+  margin-top: 4px;
+}
+
+/* ─── Skeleton loading ───────────────────────────────── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-input);
+}
+
+/* ─── Logo ───────────────────────────────────────────── */
+.oya-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: var(--space-2);
+}
+
+.oya-logo img {
+  height: 36px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+}
+
+.oya-logo span {
+  color: #fff;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+/* ─── Table styles ───────────────────────────────────── */
+.ant-table-thead > tr > th {
+  font-family: var(--font-heading) !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--color-text-secondary) !important;
+}
+
+/* ─── Scrollbar styling ──────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
