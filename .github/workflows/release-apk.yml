@@ -1,0 +1,63 @@
+name: Build and Release APK
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-release:
+    name: Build & Publish Android APK
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed to create a GitHub Release
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        working-directory: apps/mobile
+        run: flutter pub get
+
+      - name: Build APK
+        working-directory: apps/mobile
+        run: flutter build apk --release
+
+      - name: Generate Release Tag
+        id: generate_tag
+        run: echo "TAG=v1.0.${{ github.run_number }}" >> $GITHUB_ENV
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          name: "Oya Microcredit App - ${{ env.TAG }}"
+          body: |
+            ## Oya Microcredit Mobile App 🚀
+            
+            This is the latest automated build of the Oya Microcredit Android app.
+            
+            ### Instructions:
+            1. Download the `app-release.apk` file below to your Android device.
+            2. Open the file to install it.
+            3. *Note: You may need to allow "Install from unknown sources" in your Android settings.*
+            
+            **Build Details:**
+            - Branch: `${{ github.ref_name }}`
+            - Commit: `${{ github.sha }}`
+          files: apps/mobile/build/app/outputs/flutter-apk/app-release.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
