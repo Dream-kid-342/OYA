@@ -14,7 +14,7 @@ COPY . .
 RUN dart run flutter_launcher_icons
 
 # Build the web application
-RUN flutter build web --release --web-renderer canvaskit
+RUN flutter build web --release
 
 # Stage 2: Serve the application using NGINX
 FROM nginx:alpine

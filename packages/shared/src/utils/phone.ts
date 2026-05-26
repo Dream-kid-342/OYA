@@ -4,12 +4,10 @@
  */
 
 const VALID_KENYAN_PREFIXES = [
-  // Safaricom
-  '+25470', '+25471', '+25472', '+25479',
-  // Airtel Kenya
-  '+25473', '+25474', '+25475',
-  // Telkom Kenya
-  '+25477',
+  // All 07XX numbers (Safaricom, Airtel, Telkom, Equitel, Faiba)
+  '+2547',
+  // All newer 01XX numbers (Safaricom 011X, Airtel 010X)
+  '+2541',
 ];
 
 export interface PhoneValidationResult {
@@ -61,7 +59,7 @@ export function normalizeKenyanPhone(phone: string): PhoneValidationResult {
   if (!prefixMatch) {
     return {
       valid: false,
-      error: 'Invalid Kenyan mobile prefix. Accepted: Safaricom, Airtel, Telkom',
+      error: 'Invalid Kenyan mobile prefix. Must start with 07 or 01 (e.g. 07XX or 01XX)',
     };
   }
 
