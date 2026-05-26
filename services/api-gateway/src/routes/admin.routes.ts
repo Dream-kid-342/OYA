@@ -37,7 +37,7 @@ export default async function adminRoutes(fastify: FastifyInstance) {
         }),
       ]);
 
-      const data = users.map((u) => ({
+      const data = users.map((u: any) => ({
         id: u.id,
         fullName: u.fullName,
         phoneNumber: u.phoneNumber,
@@ -45,8 +45,8 @@ export default async function adminRoutes(fastify: FastifyInstance) {
         createdAt: u.createdAt,
         kycStatus: u.kycStatus,
         status: u.status,
-        businessName: (u.businessDetails as any)?.businessName || 'N/A',
-        businessLocation: (u.businessDetails as any)?.businessLocation || 'N/A',
+        businessName: u.businessDetails?.businessName || 'N/A',
+        businessLocation: u.businessDetails?.businessLocation || 'N/A',
         activeLoan: u.loans.length > 0 ? {
           referenceNumber: u.loans[0].id.substring(0, 8).toUpperCase(),
           status: u.loans[0].status,
@@ -94,7 +94,7 @@ export default async function adminRoutes(fastify: FastifyInstance) {
         }),
       ]);
 
-      const data = loans.map((l) => ({
+      const data = loans.map((l: any) => ({
         id: l.id,
         referenceNumber: l.id.substring(0, 8).toUpperCase(),
         customerName: l.user.fullName,

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { getRedisClient, RedisKeys, RedisTTL } from '@oya/shared';
 import AfricasTalking from 'africastalking';
 

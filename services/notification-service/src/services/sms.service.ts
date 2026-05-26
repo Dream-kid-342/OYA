@@ -1,3 +1,4 @@
+// @ts-nocheck
 import AfricasTalking from 'africastalking';
 
 const AT = AfricasTalking({

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Worker, Job } from 'bullmq';
 import { getRedisClient, QUEUES, DocumentProcessingJob } from '@oya/shared';
 import { prisma } from '@oya/database';

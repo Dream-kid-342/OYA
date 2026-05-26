@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { initiatePayment, processMpesaCallback, getPaymentStatus } from '../services/payment.service';

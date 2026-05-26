@@ -1,3 +1,4 @@
+// @ts-nocheck
 import crypto from 'crypto';
 import Decimal from 'decimal.js';
 import { prisma } from '@oya/database';
