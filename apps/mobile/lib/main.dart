@@ -1,10 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cookie_jar/cookie_jar.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
+import 'core/network/api_client.dart';
 
-void main() {
-  runApp(const ProviderScope(child: OyaApp()));
+void main() async {
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+
+  final appDocDir = await getApplicationDocumentsDirectory();
+  final cookieJar = PersistCookieJar(
+    ignoreExpires: true,
+    storage: FileStorage("${appDocDir.path}/.cookies/"),
+  );
+
+  runApp(ProviderScope(
+    overrides: [
+      cookieJarProvider.overrideWithValue(cookieJar),
+    ],
+    child: const OyaApp(),
+  ));
+
+  FlutterNativeSplash.remove();
 }
 
 class OyaApp extends ConsumerWidget {

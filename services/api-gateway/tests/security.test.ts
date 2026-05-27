@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 import { buildGateway } from '../src/app';
+import fp from 'fastify-plugin';
 
 vi.mock('@fastify/rate-limit', () => {
-  const fp = require('fastify-plugin');
   return {
     default: fp(async function (fastify: any, opts: any) {
       let count = 0;
