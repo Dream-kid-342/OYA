@@ -29,7 +29,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return '/splash';
       }
 
-      final isAuthRoute = state.uri.path == '/login' || state.uri.path == '/register' || state.uri.path == '/otp' || state.uri.path == '/splash';
+      // Allow splash screen to show for its full duration
+      if (state.uri.path == '/splash') {
+        return null;
+      }
+
+      final isAuthRoute = state.uri.path == '/login' || state.uri.path == '/register' || state.uri.path == '/otp';
       
       if (!authState.isAuthenticated && !isAuthRoute && state.uri.path != '/terminated') {
         return '/login';

@@ -9,12 +9,16 @@ const app = Fastify({
   logger: { level: process.env.LOG_LEVEL || "info" },
 });
 
+import { paymentRoutes } from './routes/payment.routes';
+
 app.register(cors, { origin: true });
 app.register(helmet);
 
 app.get("/health", async () => {
   return { status: "ok", service: "payment-service" };
 });
+
+app.register(paymentRoutes, { prefix: '/payments' });
 
 const start = async () => {
   try {

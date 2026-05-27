@@ -49,5 +49,6 @@ class AuthRepository {
     } catch (_) {}
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('access_token');
+    await prefs.remove('login_time');
   }
 }

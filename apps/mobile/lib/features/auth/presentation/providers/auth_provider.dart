@@ -48,8 +48,18 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<void> _init() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
-    if (token != null) {
-      state = state.copyWith(isLoading: false, isAuthenticated: true);
+    final loginTimeStr = prefs.getString('login_time');
+    
+    if (token != null && loginTimeStr != null) {
+      final loginTime = DateTime.tryParse(loginTimeStr);
+      // Check if 7 days have passed locally
+      if (loginTime != null && DateTime.now().difference(loginTime).inDays >= 7) {
+        await prefs.remove('access_token');
+        await prefs.remove('login_time');
+        state = state.copyWith(isLoading: false, isAuthenticated: false);
+      } else {
+        state = state.copyWith(isLoading: false, isAuthenticated: true);
+      }
     } else {
       state = state.copyWith(isLoading: false, isAuthenticated: false);
     }
@@ -59,6 +69,10 @@ class AuthNotifier extends Notifier<AuthState> {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final data = await _repository.login(phone, password);
+      
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('login_time', DateTime.now().toIso8601String());
+
       state = state.copyWith(
         isLoading: false,
         isAuthenticated: true,
