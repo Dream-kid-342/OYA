@@ -6,12 +6,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AuthState {
   final bool isLoading;
   final bool isAuthenticated;
+  final bool isTerminated;
   final Map<String, dynamic>? user;
   final String? error;
 
   AuthState({
     this.isLoading = false,
     this.isAuthenticated = false,
+    this.isTerminated = false,
     this.user,
     this.error,
   });
@@ -19,12 +21,14 @@ class AuthState {
   AuthState copyWith({
     bool? isLoading,
     bool? isAuthenticated,
+    bool? isTerminated,
     Map<String, dynamic>? user,
     String? error,
   }) {
     return AuthState(
       isLoading: isLoading ?? this.isLoading,
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
+      isTerminated: isTerminated ?? this.isTerminated,
       user: user ?? this.user,
       error: error,
     );
@@ -75,6 +79,11 @@ class AuthNotifier extends Notifier<AuthState> {
         errorMessage = e.message ?? 'Network error';
       }
       
+      if (errorMessage == 'ACCOUNT_TERMINATED') {
+        state = state.copyWith(isLoading: false, isTerminated: true);
+        throw errorMessage;
+      }
+
       state = state.copyWith(
         isLoading: false,
         error: errorMessage,
@@ -93,6 +102,10 @@ class AuthNotifier extends Notifier<AuthState> {
     state = state.copyWith(isLoading: true);
     await _repository.logout();
     state = state.copyWith(isLoading: false, isAuthenticated: false, user: null);
+  }
+
+  void markTerminated() {
+    state = state.copyWith(isTerminated: true, isAuthenticated: false, isLoading: false);
   }
 }
 

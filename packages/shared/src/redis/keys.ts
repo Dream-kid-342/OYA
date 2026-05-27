@@ -17,6 +17,7 @@ export const RedisKeys = {
   // Auth
   tokenBlacklist: (jti: string) => `blacklist:${jti}`,
   sessionCache: (sessionId: string) => `session:${sessionId}`,
+  userOnline: (userId: string) => `online:${userId}`,
 
   // Abuse / IP Ban
   ipBan: (ip: string) => `ban:ip:${ip}`,
@@ -56,6 +57,7 @@ export const RedisTTL = {
   SESSION_CACHE: 1800, // 30 minutes
   LOAN_BALANCE: 300,  // 5 minutes
   USER_CACHE: 3600,   // 1 hour
+  USER_ONLINE: 300,   // 5 minutes
   LOAN_CACHE: 300,    // 5 minutes
   QUEUE_METRICS: 60,  // 1 minute
 } as const;

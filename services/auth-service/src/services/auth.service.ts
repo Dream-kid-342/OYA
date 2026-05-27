@@ -133,6 +133,9 @@ export async function loginUser(
   if (user.status === 'SUSPENDED') {
     throw Object.assign(new Error('Account suspended. Contact support.'), { statusCode: 403 });
   }
+  if (user.status === 'DELETED') {
+    throw Object.assign(new Error('ACCOUNT_TERMINATED'), { statusCode: 403 });
+  }
 
   const passwordValid = await argon2.verify(user.passwordHash, input.password);
   if (!passwordValid) {
@@ -239,7 +242,10 @@ export async function refreshTokens(rawRefreshToken: string) {
     throw Object.assign(new Error('Invalid or expired refresh token'), { statusCode: 401 });
   }
 
-  if (session.user.status === 'SUSPENDED' || session.user.deletedAt) {
+  if (session.user.status === 'DELETED' || session.user.deletedAt) {
+    throw Object.assign(new Error('ACCOUNT_TERMINATED'), { statusCode: 403 });
+  }
+  if (session.user.status === 'SUSPENDED') {
     throw Object.assign(new Error('Account suspended'), { statusCode: 403 });
   }
 

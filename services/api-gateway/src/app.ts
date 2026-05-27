@@ -8,7 +8,7 @@ import helmet from '@fastify/helmet';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import httpProxy from '@fastify/http-proxy';
-import { getRedisClient, RedisKeys } from '@oya/shared';
+import { getRedisClient, RedisKeys, RedisTTL } from '@oya/shared';
 import { verifyAccessToken, isTokenBlacklisted } from './services/token.service';
 import { prisma } from '@oya/database';
 import dashboardRoutes from './routes/dashboard.routes';
@@ -77,6 +77,8 @@ export async function buildGateway() {
       }
 
       req.tokenPayload = payload;
+      // Mark user as online
+      await redis.setex(RedisKeys.userOnline(payload.userId), RedisTTL.USER_ONLINE, '1');
     } catch {
       return reply.status(401).send({ statusCode: 401, message: 'Invalid or expired token' });
     }

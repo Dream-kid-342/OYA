@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:mobile/features/auth/presentation/providers/auth_provider.dart';
+
 final apiClientProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(
@@ -21,7 +23,9 @@ final apiClientProvider = Provider<Dio>((ref) {
       return handler.next(options);
     },
     onError: (DioException e, handler) async {
-      // Basic global error logging
+      if (e.response?.statusCode == 403 && e.response?.data?['message'] == 'ACCOUNT_TERMINATED') {
+        ref.read(authProvider.notifier).markTerminated();
+      }
       return handler.next(e);
     },
   ));

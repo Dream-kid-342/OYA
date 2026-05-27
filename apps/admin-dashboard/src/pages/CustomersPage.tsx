@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Input, Select, Button, Tag, Space, Typography, Card, Drawer, Descriptions, Avatar, Tabs, Timeline } from 'antd';
-import { SearchOutlined, StopOutlined, CheckCircleOutlined, LogoutOutlined, EyeOutlined } from '@ant-design/icons';
+import { Table, Input, Select, Button, Tag, Space, Typography, Card, Drawer, Descriptions, Avatar, Tabs, Timeline, Modal, Form } from 'antd';
+import { SearchOutlined, StopOutlined, CheckCircleOutlined, LogoutOutlined, EyeOutlined, MessageOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import api from '../api/client';
 
@@ -15,9 +15,20 @@ interface Customer {
   createdAt: string;
   kycStatus: string;
   status: string;
+  isOnline?: boolean;
   businessName: string;
   businessLocation: string;
   activeLoan?: { referenceNumber: string; status: string; balanceRemaining: number };
+}
+
+interface DetailedCustomer extends Customer {
+  dateOfBirth?: string;
+  gender?: string;
+  businessType?: string;
+  businessDescription?: string;
+  loans: any[];
+  repayments: any[];
+  sessions: any[];
 }
 
 const KYC_COLORS: Record<string, string> = {
@@ -42,6 +53,10 @@ const CustomersPage: React.FC = () => {
   const [total, setTotal] = useState(0);
   const [selected, setSelected] = useState<Customer | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [detailedCustomer, setDetailedCustomer] = useState<DetailedCustomer | null>(null);
+  const [drawerLoading, setDrawerLoading] = useState(false);
+  const [messageModalOpen, setMessageModalOpen] = useState(false);
+  const [form] = Form.useForm();
 
   const fetchCustomers = async () => {
     setLoading(true);
@@ -60,7 +75,7 @@ const CustomersPage: React.FC = () => {
 
   useEffect(() => { fetchCustomers(); }, [page, search, kycFilter, statusFilter]);
 
-  const handleAction = async (customerId: string, action: 'suspend' | 'unsuspend' | 'force-logout') => {
+  const handleAction = async (customerId: string, action: 'suspend' | 'unsuspend' | 'force-logout' | 'terminate') => {
     try {
       await api.post(`/admin/customers/${customerId}/${action}`);
       fetchCustomers();
@@ -75,9 +90,17 @@ const CustomersPage: React.FC = () => {
       key: 'customer',
       render: (_, r) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Avatar style={{ background: '#2E7D32', fontFamily: 'Poppins', fontWeight: 600 }}>
-            {r.fullName.charAt(0)}
-          </Avatar>
+          <div style={{ position: 'relative' }}>
+            <Avatar style={{ background: '#2E7D32', fontFamily: 'Poppins', fontWeight: 600 }}>
+              {r.fullName.charAt(0)}
+            </Avatar>
+            {r.isOnline && (
+              <div style={{
+                position: 'absolute', bottom: 0, right: 0, width: 12, height: 12,
+                borderRadius: '50%', background: '#52c41a', border: '2px solid white'
+              }} title="Online" />
+            )}
+          </div>
           <div>
             <div style={{ fontWeight: 600, fontFamily: 'Poppins', fontSize: 14 }}>{r.fullName}</div>
             <div style={{ fontSize: 12, color: '#9e9e9e' }}>{r.businessName}</div>
@@ -136,9 +159,29 @@ const CustomersPage: React.FC = () => {
             id={`view-customer-${r.id}`}
             icon={<EyeOutlined />}
             size="small"
-            onClick={() => { setSelected(r); setDrawerOpen(true); }}
+            onClick={async () => {
+              setSelected(r);
+              setDrawerOpen(true);
+              setDrawerLoading(true);
+              try {
+                const res = await api.get(`/admin/customers/${r.id}`);
+                setDetailedCustomer(res.data.data);
+              } catch (e) {
+                console.error(e);
+              } finally {
+                setDrawerLoading(false);
+              }
+            }}
           >
             View
+          </Button>
+          <Button
+            id={`message-customer-${r.id}`}
+            icon={<MessageOutlined />}
+            size="small"
+            onClick={() => { setSelected(r); setMessageModalOpen(true); }}
+          >
+            Message
           </Button>
           {r.status === 'ACTIVE' ? (
             <Button
@@ -162,12 +205,17 @@ const CustomersPage: React.FC = () => {
             </Button>
           )}
           <Button
-            id={`logout-customer-${r.id}`}
-            icon={<LogoutOutlined />}
+            id={`terminate-customer-${r.id}`}
+            icon={<DeleteOutlined />}
             size="small"
-            onClick={() => handleAction(r.id, 'force-logout')}
+            danger
+            onClick={() => {
+              if (window.confirm('Are you sure you want to terminate this user? This cannot be undone.')) {
+                handleAction(r.id, 'terminate');
+              }
+            }}
           >
-            Force Logout
+            Terminate
           </Button>
         </Space>
       ),
@@ -250,58 +298,111 @@ const CustomersPage: React.FC = () => {
             </Avatar>
             <div>
               <div style={{ fontFamily: 'Poppins', fontWeight: 600, fontSize: 16 }}>{selected?.fullName}</div>
-              <div style={{ fontSize: 12, color: '#9e9e9e' }}>{selected?.phoneNumber}</div>
+              <div style={{ fontSize: 12, color: '#9e9e9e' }}>Customer 360° Profile</div>
             </div>
           </div>
         }
-        width={600}
+        width={700}
         open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
+        onClose={() => { setDrawerOpen(false); setDetailedCustomer(null); }}
       >
-        {selected && (
-          <Tabs
-            items={[
-              {
-                key: 'personal',
-                label: 'Profile',
-                children: (
-                  <Descriptions column={1} bordered size="small">
-                    <Descriptions.Item label="Full Name">{selected.fullName}</Descriptions.Item>
-                    <Descriptions.Item label="National ID">**{selected.nationalId.slice(-4)}</Descriptions.Item>
-                    <Descriptions.Item label="Phone">{selected.phoneNumber}</Descriptions.Item>
-                    <Descriptions.Item label="Business">{selected.businessName}</Descriptions.Item>
-                    <Descriptions.Item label="Location">{selected.businessLocation}</Descriptions.Item>
-                    <Descriptions.Item label="KYC Status">
-                      <Tag color={KYC_COLORS[selected.kycStatus]}>{selected.kycStatus}</Tag>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Account Status">
-                      <Tag color={STATUS_COLORS[selected.status]}>{selected.status}</Tag>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Registered">
-                      {new Date(selected.createdAt).toLocaleString('en-KE')}
-                    </Descriptions.Item>
-                  </Descriptions>
-                ),
-              },
-              {
-                key: 'loans',
-                label: 'Loans',
-                children: selected.activeLoan
-                  ? (
-                    <Descriptions column={1} bordered size="small">
-                      <Descriptions.Item label="Reference">{selected.activeLoan.referenceNumber}</Descriptions.Item>
-                      <Descriptions.Item label="Status">{selected.activeLoan.status}</Descriptions.Item>
-                      <Descriptions.Item label="Balance Remaining">
-                        KES {selected.activeLoan.balanceRemaining?.toLocaleString()}
-                      </Descriptions.Item>
-                    </Descriptions>
-                  )
-                  : <Text type="secondary">No active loan</Text>,
-              },
-            ]}
-          />
+        {drawerLoading ? (
+          <div style={{ textAlign: 'center', marginTop: 50 }}>Loading full customer history...</div>
+        ) : detailedCustomer ? (
+          <Tabs defaultActiveKey="1">
+            <Tabs.TabPane tab="Profile & Business" key="1">
+              <Descriptions column={1} bordered size="small">
+                <Descriptions.Item label="Full Name">{detailedCustomer.fullName}</Descriptions.Item>
+                <Descriptions.Item label="Phone">{detailedCustomer.phoneNumber}</Descriptions.Item>
+                <Descriptions.Item label="National ID">{detailedCustomer.nationalId}</Descriptions.Item>
+                <Descriptions.Item label="Date of Birth">{detailedCustomer.dateOfBirth ? new Date(detailedCustomer.dateOfBirth).toLocaleDateString() : 'N/A'}</Descriptions.Item>
+                <Descriptions.Item label="Gender">{detailedCustomer.gender || 'N/A'}</Descriptions.Item>
+                <Descriptions.Item label="KYC Status">
+                  <Tag color={detailedCustomer.kycStatus === 'VERIFIED' ? 'green' : 'orange'}>{detailedCustomer.kycStatus}</Tag>
+                </Descriptions.Item>
+                <Descriptions.Item label="Account Status">
+                  <Tag color={detailedCustomer.status === 'ACTIVE' ? 'green' : 'red'}>{detailedCustomer.status}</Tag>
+                </Descriptions.Item>
+                <Descriptions.Item label="Business Name">{detailedCustomer.businessName || 'N/A'}</Descriptions.Item>
+                <Descriptions.Item label="Business Type">{detailedCustomer.businessType || 'N/A'}</Descriptions.Item>
+                <Descriptions.Item label="Location">{detailedCustomer.businessLocation || 'N/A'}</Descriptions.Item>
+                <Descriptions.Item label="Description">{detailedCustomer.businessDescription || 'N/A'}</Descriptions.Item>
+              </Descriptions>
+            </Tabs.TabPane>
+            <Tabs.TabPane tab="Loan History" key="2">
+              <Table 
+                dataSource={detailedCustomer.loans} 
+                rowKey="id" 
+                size="small"
+                pagination={false}
+                scroll={{ x: 600 }}
+                columns={[
+                  { title: 'Ref', dataIndex: 'referenceNumber', key: 'ref' },
+                  { title: 'Principal', dataIndex: 'principalAmount', key: 'principal', render: (val) => `KES ${val}` },
+                  { title: 'Balance', dataIndex: 'balanceRemaining', key: 'balance', render: (val) => `KES ${val}` },
+                  { title: 'Repaid', dataIndex: 'totalRepaid', key: 'repaid', render: (val) => `KES ${val}` },
+                  { title: 'Status', dataIndex: 'status', key: 'status', render: (val) => <Tag>{val}</Tag> },
+                  { title: 'Date', dataIndex: 'createdAt', key: 'date', render: (val) => new Date(val).toLocaleDateString() },
+                ]}
+              />
+            </Tabs.TabPane>
+            <Tabs.TabPane tab="Repayments Ledger" key="3">
+              <Table 
+                dataSource={detailedCustomer.repayments} 
+                rowKey="id" 
+                size="small"
+                pagination={false}
+                columns={[
+                  { title: 'Date', dataIndex: 'transactionDate', key: 'date', render: (val) => new Date(val).toLocaleDateString() },
+                  { title: 'Receipt No.', dataIndex: 'mpesaReceiptNumber', key: 'receipt' },
+                  { title: 'Amount', dataIndex: 'amount', key: 'amount', render: (val) => <span style={{ color: '#2E7D32', fontWeight: 'bold' }}>KES {val}</span> },
+                  { title: 'Channel', dataIndex: 'paymentMethod', key: 'channel' },
+                ]}
+              />
+            </Tabs.TabPane>
+          </Tabs>
+        ) : (
+          <div style={{ textAlign: 'center', marginTop: 50 }}>Select a customer to view details</div>
         )}
       </Drawer>
+
+      {/* Message Modal */}
+      <Modal
+        title={`Message ${selected?.fullName}`}
+        open={messageModalOpen}
+        onCancel={() => { setMessageModalOpen(false); form.resetFields(); }}
+        onOk={() => form.submit()}
+        okText="Send Message"
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={async (values) => {
+            if (!selected) return;
+            try {
+              await api.post(`/admin/customers/${selected.id}/message`, values);
+              setMessageModalOpen(false);
+              form.resetFields();
+            } catch (err) {
+              console.error(err);
+            }
+          }}
+        >
+          <Form.Item name="channel" label="Delivery Channel" initialValue="PUSH" rules={[{ required: true }]}>
+            <Select options={[
+              { label: 'Push Notification', value: 'PUSH' },
+              { label: 'SMS Message', value: 'SMS' },
+              { label: 'Email', value: 'EMAIL' }
+            ]} />
+          </Form.Item>
+          <Form.Item name="title" label="Title (For Push/Email)" rules={[{ required: true }]}>
+            <Input placeholder="Message subject or title" />
+          </Form.Item>
+          <Form.Item name="body" label="Message Body" rules={[{ required: true }]}>
+            <Input.TextArea rows={4} placeholder="Type your message here..." />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };

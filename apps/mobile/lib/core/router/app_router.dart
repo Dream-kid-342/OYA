@@ -6,6 +6,7 @@ import 'package:mobile/features/auth/presentation/screens/splash_screen.dart';
 import 'package:mobile/features/auth/presentation/screens/login_screen.dart';
 import 'package:mobile/features/auth/presentation/screens/register_screen.dart';
 import 'package:mobile/features/auth/presentation/screens/otp_screen.dart';
+import 'package:mobile/features/auth/presentation/screens/terminated_screen.dart';
 import 'package:mobile/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:mobile/features/loans/presentation/screens/loans_screen.dart';
 import 'package:mobile/features/payments/presentation/screens/payments_screen.dart';
@@ -21,9 +22,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       if (authState.isLoading) return null; // Don't redirect while checking auth
 
+      if (authState.isTerminated && state.uri.path != '/terminated') {
+        return '/terminated';
+      }
+      if (state.uri.path == '/terminated' && !authState.isTerminated) {
+        return '/splash';
+      }
+
       final isAuthRoute = state.uri.path == '/login' || state.uri.path == '/register' || state.uri.path == '/otp' || state.uri.path == '/splash';
       
-      if (!authState.isAuthenticated && !isAuthRoute) {
+      if (!authState.isAuthenticated && !isAuthRoute && state.uri.path != '/terminated') {
         return '/login';
       }
       
@@ -37,6 +45,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/splash',
         builder: (context, state) => const SplashScreen(),
+      ),
+      GoRoute(
+        path: '/terminated',
+        builder: (context, state) => const TerminatedScreen(),
       ),
       GoRoute(
         path: '/login',
