@@ -6,7 +6,7 @@
     "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
     "build": "tsc",
     "start": "node dist/app.js",
-    "test": "vitest run"
+    "test": "npx vitest run"
   },
   "dependencies": {
     "@fastify/cookie": "^9.3.1",
