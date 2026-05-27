@@ -21,6 +21,7 @@
     "db:seed": "npm run db:seed -w packages/database"
   },
   "devDependencies": {
+    "@fastify/cookie": "^11.0.2",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
     "concurrently": "^8.2.2",
