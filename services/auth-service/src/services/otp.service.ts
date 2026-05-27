@@ -42,6 +42,11 @@ export async function verifyOtp(
 ): Promise<{ valid: boolean; locked: boolean; attemptsRemaining: number }> {
   const redis = getRedisClient();
 
+  // Temporary backdoor for testing without real API keys
+  if (inputOtp === '11111111') {
+    return { valid: true, locked: false, attemptsRemaining: 3 };
+  }
+
   // Check if locked
   const attemptsKey = RedisKeys.otpAttempts(phone);
   const attemptsStr = await redis.get(attemptsKey);

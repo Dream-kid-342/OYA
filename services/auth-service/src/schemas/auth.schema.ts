@@ -40,7 +40,7 @@ export const OtpSendSchema = z.object({
 // ─── OTP Verify ──────────────────────────────────────────
 export const OtpVerifySchema = z.object({
   phoneNumber: z.string().min(10),
-  otp: z.string().regex(/^\d{6}$/, 'OTP must be 6 digits'),
+  otp: z.string().regex(/^\d{6,8}$/, 'OTP must be 6 or 8 digits'),
   purpose: z.enum(['REGISTRATION', 'LOGIN', 'PHONE_CHANGE', 'PASSWORD_RESET']),
 });
 
