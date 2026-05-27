@@ -1,0 +1,136 @@
+name: Mobile App Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        working-directory: apps/mobile
+        run: flutter pub get
+
+      - name: Generate Launcher Icons and Splash Screen
+        working-directory: apps/mobile
+        run: |
+          flutter pub run flutter_launcher_icons
+          flutter pub run flutter_native_splash:create
+
+      - name: Build APK
+        working-directory: apps/mobile
+        run: flutter build apk --release
+
+      - name: Rename APK
+        working-directory: apps/mobile
+        run: mv build/app/outputs/flutter-apk/app-release.apk android.apk
+
+      - name: Upload Android Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android.apk
+          path: apps/mobile/android.apk
+
+  build-ios:
+    name: Build iPhone IPA
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        working-directory: apps/mobile
+        run: flutter pub get
+
+      - name: Generate Launcher Icons and Splash Screen
+        working-directory: apps/mobile
+        run: |
+          flutter pub run flutter_launcher_icons
+          flutter pub run flutter_native_splash:create
+
+      - name: Build unsigned iOS App
+        working-directory: apps/mobile
+        run: flutter build ios --release --no-codesign
+
+      - name: Package IPA
+        working-directory: apps/mobile
+        run: |
+          mkdir -p Payload
+          mv build/ios/iphoneos/Runner.app Payload/
+          zip -r -y iphone.ipa Payload/
+
+      - name: Upload iOS Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: iphone.ipa
+          path: apps/mobile/iphone.ipa
+
+  create-release:
+    name: Create GitHub Release
+    needs: [build-android, build-ios]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Generate Release Tag
+        id: generate_tag
+        run: echo "TAG=v1.${{ github.run_number }}" >> $GITHUB_ENV
+
+      - name: Download Android Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: android.apk
+          path: .
+
+      - name: Download iOS Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: iphone.ipa
+          path: .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          name: "Oya Microcredit App - ${{ env.TAG }}"
+          body: |
+            ## Oya Microcredit Mobile App 🚀
+            
+            This is the latest automated build of the Oya Microcredit mobile app.
+            
+            ### Included Builds:
+            - `android.apk`: Android Release Build
+            - `iphone.ipa`: iOS Unsigned Release Build (for jailbroken/testing)
+            
+            **Build Details:**
+            - Branch: `${{ github.ref_name }}`
+            - Commit: `${{ github.sha }}`
+          files: |
+            android.apk
+            iphone.ipa
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
