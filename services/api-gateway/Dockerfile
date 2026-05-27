@@ -6,7 +6,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY tsconfig.json ./
 
-# Copy all workspaces
+# Copy all workspaces (needed for monorepo dependency resolution)
 COPY packages/ ./packages/
 COPY services/ ./services/
 
@@ -17,7 +17,7 @@ RUN npm ci
 RUN npm run db:generate
 
 # Build the specific service
-RUN npm run build -w @oya/auth-service
+RUN npm run build -w @oya/api-gateway
 
 FROM node:20-alpine AS runner
 WORKDIR /app
@@ -27,7 +27,7 @@ ENV NODE_ENV=production
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/packages ./packages
-COPY --from=builder /app/services/auth-service ./services/auth-service
+COPY --from=builder /app/services/api-gateway ./services/api-gateway
 
 # Start the service
-CMD ["npm", "start", "-w", "@oya/auth-service"]
+CMD ["npm", "start", "-w", "@oya/api-gateway"]

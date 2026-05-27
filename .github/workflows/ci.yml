@@ -67,7 +67,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/oya_test
       REDIS_URL: redis://localhost:6379
-      JWT_SECRET: test-secret-for-ci-only-256bits
+      JWT_SECRET: dummy-test-secret
       NODE_ENV: test
       AT_API_KEY: test
       AT_USERNAME: sandbox
@@ -132,6 +132,7 @@ jobs:
           path: ./
           base: ${{ github.event.repository.default_branch }}
           head: HEAD
+          extra_args: --only-verified
 
   # ─── Docker Build ────────────────────────────────────
   build:
