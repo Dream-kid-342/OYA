@@ -104,7 +104,7 @@ export class DashboardRepository {
       _count: { id: true },
     });
     
-    return groups.map((g) => ({
+    return groups.map((g: any) => ({
       name: g.status,
       value: g._count.id,
     }));
