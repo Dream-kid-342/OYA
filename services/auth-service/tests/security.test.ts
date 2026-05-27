@@ -100,4 +100,5 @@ describe('Auth Service Security', () => {
 
     // We only care that it does not succeed with 200
     expect(response.statusCode).not.toBe(200);
+  });
 });
