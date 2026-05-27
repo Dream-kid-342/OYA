@@ -93,6 +93,37 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     }
   }
 
+  Map<String, dynamic> _validateKenyanId(String id) {
+    if (id.isEmpty) {
+      return {"status": "DENIED", "card_type": "Unknown/Invalid", "reason": "Required"};
+    }
+    if (RegExp(r'[^0-9]').hasMatch(id)) {
+      return {"status": "DENIED", "card_type": "Unknown/Invalid", "reason": "Contains invalid characters (letters/spaces/symbols)"};
+    }
+    
+    int length = id.length;
+    
+    if (length <= 7) {
+      return {"status": "DENIED", "card_type": "Unknown/Invalid", "reason": "Too short (minimum 8 digits)"};
+    }
+    if (length == 10 || length == 11 || length == 12 || length == 13) {
+      return {"status": "DENIED", "card_type": "Unknown/Invalid", "reason": "Invalid length ($length digits)"};
+    }
+    if (length >= 15) {
+      return {"status": "DENIED", "card_type": "Unknown/Invalid", "reason": "Too long (maximum 14 digits)"};
+    }
+
+    if (length == 8) {
+      return {"status": "ACCEPTED", "card_type": "8-Digit Normal ID", "reason": "Valid legacy ID."};
+    } else if (length == 9) {
+      return {"status": "ACCEPTED", "card_type": "9-Digit Maisha ID", "reason": "Valid Maisha Namba."};
+    } else if (length == 14) {
+      return {"status": "ACCEPTED", "card_type": "14-Digit Maisha UPI", "reason": "Valid Maisha UPI."};
+    }
+
+    return {"status": "DENIED", "card_type": "Unknown/Invalid", "reason": "Invalid format"};
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -124,9 +155,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               
               TextFormField(
                 controller: _nationalIdCtrl,
-                decoration: const InputDecoration(labelText: 'National ID'),
+                decoration: const InputDecoration(labelText: 'National ID / Maisha Namba'),
                 keyboardType: TextInputType.number,
-                validator: (v) => v!.length < 7 ? 'Invalid ID' : null,
+                validator: (v) {
+                  final result = _validateKenyanId(v ?? '');
+                  if (result['status'] == 'DENIED') {
+                    return result['reason'];
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
               

@@ -68,11 +68,19 @@ export async function buildGateway() {
 
       // Validate session in DB
       const session = await prisma.session.findFirst({
-        where: { id: payload.sessionId, isActive: true },
-        select: { id: true, userId: true },
+        where: { id: payload.sessionId },
+        select: { id: true, isActive: true, userId: true, user: { select: { status: true } } },
       });
 
       if (!session) {
+        return reply.status(401).send({ statusCode: 401, message: 'Invalid session' });
+      }
+
+      if (session.user.status === 'DELETED') {
+        return reply.status(403).send({ statusCode: 403, message: 'ACCOUNT_TERMINATED' });
+      }
+
+      if (!session.isActive) {
         return reply.status(401).send({ statusCode: 401, message: 'Session expired' });
       }
 
