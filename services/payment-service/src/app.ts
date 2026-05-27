@@ -5,20 +5,20 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 
-const app = Fastify({
+export const app = Fastify({
   logger: { level: process.env.LOG_LEVEL || "info" },
 });
 
-import { paymentRoutes } from './routes/payment.routes';
-
 app.register(cors, { origin: true });
 app.register(helmet);
+
+import { paymentRoutes } from "./routes/payment.routes";
 
 app.get("/health", async () => {
   return { status: "ok", service: "payment-service" };
 });
 
-app.register(paymentRoutes, { prefix: '/payments' });
+app.register(paymentRoutes, { prefix: "/api/v1/payments" });
 
 const start = async () => {
   try {
@@ -30,4 +30,6 @@ const start = async () => {
   }
 };
 
-start();
+if (process.env.NODE_ENV !== 'test') {
+  start();
+}

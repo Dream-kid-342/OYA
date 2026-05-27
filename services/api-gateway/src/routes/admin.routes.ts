@@ -3,6 +3,8 @@ import { prisma } from '@oya/database';
 import { getRedisClient, RedisKeys } from '@oya/shared';
 
 export default async function adminRoutes(fastify: FastifyInstance) {
+  fastify.addHook('onRequest', (fastify as any).authenticate);
+
   // GET /api/v1/admin/customers
   fastify.get('/customers', async (request, reply) => {
     try {

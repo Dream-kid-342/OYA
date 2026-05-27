@@ -179,7 +179,9 @@ async function start() {
   console.log(`✅ api-gateway running on port ${port}`);
 }
 
-start().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+if (process.env.NODE_ENV !== 'test') {
+  start().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}

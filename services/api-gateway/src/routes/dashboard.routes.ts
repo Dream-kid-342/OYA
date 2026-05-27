@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { dashboardService } from '../services/dashboard.service';
 
 export default async function dashboardRoutes(fastify: FastifyInstance) {
+  fastify.addHook('onRequest', (fastify as any).authenticate);
   fastify.get('/stats', async (request, reply) => {
     try {
       const stats = await dashboardService.getDashboardStats();

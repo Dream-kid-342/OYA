@@ -22,6 +22,16 @@ export async function buildApp() {
 
   const app = Fastify({ logger, trustProxy: true });
 
+  app.setErrorHandler((error, request, reply) => {
+    if (error.name === 'ZodError') {
+      return reply.status(400).send({ statusCode: 400, message: 'Validation error', issues: (error as any).issues });
+    }
+    if (error.code === 'FST_ERR_VALIDATION') {
+      return reply.status(400).send({ statusCode: 400, message: 'Validation error', details: error.message });
+    }
+    reply.send(error);
+  });
+
   // ─── Security headers ────────────────────────────────────
   await app.register(helmet, {
     contentSecurityPolicy: {
@@ -117,4 +127,9 @@ async function start() {
   }
 }
 
-start();
+if (process.env.NODE_ENV !== 'test') {
+  start().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}

@@ -5,7 +5,7 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 
-const app = Fastify({
+export const app = Fastify({
   logger: { level: process.env.LOG_LEVEL || "info" },
 });
 
@@ -26,4 +26,6 @@ const start = async () => {
   }
 };
 
-start();
+if (process.env.NODE_ENV !== 'test') {
+  start();
+}
