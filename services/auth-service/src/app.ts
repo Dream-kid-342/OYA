@@ -42,7 +42,7 @@ export async function buildApp() {
   });
 
   // ─── Cookies ─────────────────────────────────────────────
-  await app.register(cookie, {
+  await app.register(cookie as any, {
     secret: process.env.JWT_SECRET || 'fallback-secret',
     hook: 'onRequest',
   });
@@ -54,8 +54,8 @@ export async function buildApp() {
     max: 100,
     timeWindow: 60000, // 60 seconds
     redis,
-    keyGenerator: (req) => req.ip,
-    errorResponseBuilder: (_req, context) => ({
+    keyGenerator: (req: any) => req.ip,
+    errorResponseBuilder: (_req: any, context: any) => ({
       statusCode: 429,
       error: 'Too Many Requests',
       message: `Rate limit exceeded. Try again in ${Math.ceil(context.ttl / 1000)}s.`,

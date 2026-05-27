@@ -88,7 +88,7 @@ jobs:
         run: npm run db:migrate -w packages/database
 
       - name: Run unit tests
-        run: npm run test --workspaces --if-present
+        run: npm run test
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4

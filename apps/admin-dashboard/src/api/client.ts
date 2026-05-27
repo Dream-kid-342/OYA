@@ -1,8 +1,10 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/auth.store';
 
+const API_URL = (import.meta as any).env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1',
+  baseURL: API_URL,
   withCredentials: true, // for refresh token cookie
   timeout: 30000,
 });
@@ -40,7 +42,7 @@ api.interceptors.response.use(
 
       try {
         const { data } = await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/auth/refresh`,
+          `${(import.meta as any).env.VITE_API_BASE_URL || 'http://localhost:3000'}/auth/refresh`,
           {},
           { withCredentials: true },
         );

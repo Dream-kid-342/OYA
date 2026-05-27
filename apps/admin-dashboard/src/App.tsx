@@ -41,7 +41,9 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
   const handleLogout = async () => {
     try {
       await api.post('/auth/logout');
-    } catch {}
+    } catch (e) {
+      console.error('Logout failed:', e);
+    }
     clearAuth();
     navigate('/login');
   };

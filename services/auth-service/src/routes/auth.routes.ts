@@ -1,4 +1,5 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import '@fastify/cookie';
 import { RegisterSchema, OtpSendSchema, OtpVerifySchema, LoginSchema, ChangePasswordSchema } from '../schemas/auth.schema';
 import { registerUser, loginUser, refreshTokens, logoutSession, revokeAllSessions } from '../services/auth.service';
 import { generateOtp, storeOtp, sendOtpSms, checkOtpSendRateLimit, verifyOtp } from '../services/otp.service';
