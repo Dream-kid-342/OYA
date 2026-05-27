@@ -93,7 +93,7 @@ describe('Auth Service Security', () => {
       method: 'POST',
       url: '/auth/admin/login',
       payload: {
-        username: 'test',
+        email: 'test@admin.com',
         password: 'password',
       },
     });
