@@ -1,3 +1,6 @@
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 import { Queue } from 'bullmq';
 import { getRedisClient, QUEUES, getPenaltyQueue, getReconciliationQueue } from '@oya/shared';
 

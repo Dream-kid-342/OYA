@@ -111,6 +111,8 @@ services:
       AT_USERNAME: ${AT_USERNAME}
       AT_SENDER_ID: ${AT_SENDER_ID:-OYA}
       SENTRY_DSN: ${SENTRY_DSN}
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
     depends_on:
       redis:
         condition: service_healthy

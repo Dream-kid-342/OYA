@@ -1,10 +1,12 @@
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
-import pino from "pino";
 
 const app = Fastify({
-  logger: pino({ level: process.env.LOG_LEVEL || "info" }),
+  logger: { level: process.env.LOG_LEVEL || "info" },
 });
 
 app.register(cors, { origin: true });

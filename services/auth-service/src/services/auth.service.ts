@@ -4,6 +4,11 @@ import { validateAndNormalize, validateNationalId, getRedisClient, RedisKeys, Re
 import { RegisterInput, LoginInput } from '../schemas/auth.schema';
 import { issueAccessToken, issueRefreshToken, hashDeviceFingerprint, blacklistToken } from './token.service';
 import { generateOtp, storeOtp, sendOtpSms } from './otp.service';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_ANON_KEY || '';
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 // ─── Argon2id config (preferred) ─────────────────────────
 const ARGON2_OPTIONS = {
@@ -81,7 +86,7 @@ export async function loginUser(
   const banned = await redis.exists(RedisKeys.ipBan(ipAddress || ''));
   if (banned) throw Object.assign(new Error('Too many failed attempts. Try again later.'), { statusCode: 429 });
 
-  const user = await prisma.user.findFirst({
+  let user = await prisma.user.findFirst({
     where: { phoneNumber: phone, deletedAt: null },
     select: { id: true, fullName: true, phoneNumber: true, passwordHash: true, status: true, kycStatus: true, fcmToken: true },
   });
@@ -89,10 +94,40 @@ export async function loginUser(
   const failKey = RedisKeys.loginFailCount(ipAddress || '');
 
   if (!user) {
-    await redis.incr(failKey);
-    await redis.expire(failKey, RedisTTL.RATE_LOGIN);
-    await handleLoginFailure(ipAddress || '', null, phone);
-    throw Object.assign(new Error('Invalid phone number or password'), { statusCode: 401 });
+    let supabaseUser = null;
+    const supabaseMissingKey = `supabase:missing:${phone}`;
+    const isMissing = await redis.get(supabaseMissingKey);
+    
+    if (!isMissing && supabase) {
+      const { data } = await supabase.auth.signInWithPassword({
+        phone: phone,
+        password: input.password,
+      });
+      if (data && data.user) {
+        supabaseUser = data.user;
+      } else {
+        await redis.set(supabaseMissingKey, '1', 'EX', 3600); // Cache miss for 1 hour
+      }
+    }
+
+    if (supabaseUser) {
+      const passwordHash = await argon2.hash(input.password, ARGON2_OPTIONS);
+      user = await prisma.user.create({
+        data: {
+          fullName: supabaseUser.user_metadata?.full_name || 'Imported User',
+          nationalId: supabaseUser.user_metadata?.national_id || Math.floor(10000000 + Math.random() * 90000000).toString(),
+          phoneNumber: phone,
+          passwordHash,
+          kycStatus: 'PENDING',
+        },
+        select: { id: true, fullName: true, phoneNumber: true, passwordHash: true, status: true, kycStatus: true, fcmToken: true }
+      });
+    } else {
+      await redis.incr(failKey);
+      await redis.expire(failKey, RedisTTL.RATE_LOGIN);
+      await handleLoginFailure(ipAddress || '', null, phone);
+      throw Object.assign(new Error('Invalid phone number or password'), { statusCode: 401 });
+    }
   }
 
   if (user.status === 'SUSPENDED') {

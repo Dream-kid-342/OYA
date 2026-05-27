@@ -12,7 +12,9 @@
     "db:reset": "prisma migrate reset --force"
   },
   "dependencies": {
-    "@prisma/client": "^5.22.0"
+    "@fastify/http-proxy": "^9.5.0",
+    "@prisma/client": "^5.22.0",
+    "fastify": "^4.29.1"
   },
   "devDependencies": {
     "dotenv": "^16.6.1",
