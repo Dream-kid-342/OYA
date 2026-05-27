@@ -93,12 +93,12 @@ jobs:
       - name: Run unit tests
         run: npm run test
 
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
-        if: always()
-        continue-on-error: true
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+      # - name: Upload coverage
+      #   uses: codecov/codecov-action@v4
+      #   if: always()
+      #   continue-on-error: true
+      #   with:
+      #     token: ${{ secrets.CODECOV_TOKEN }}
 
   # ─── Security Scan ────────────────────────────────────
   security-scan:
