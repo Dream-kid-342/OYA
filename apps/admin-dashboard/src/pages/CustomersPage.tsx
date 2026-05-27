@@ -75,9 +75,13 @@ const CustomersPage: React.FC = () => {
 
   useEffect(() => { fetchCustomers(); }, [page, search, kycFilter, statusFilter]);
 
-  const handleAction = async (customerId: string, action: 'suspend' | 'unsuspend' | 'force-logout' | 'terminate') => {
+  const handleAction = async (customerId: string, action: 'suspend' | 'unsuspend' | 'force-logout' | 'terminate' | 'reactivate' | 'erase') => {
     try {
-      await api.post(`/admin/customers/${customerId}/${action}`);
+      if (action === 'erase') {
+        await api.delete(`/admin/customers/${customerId}/erase`);
+      } else {
+        await api.post(`/admin/customers/${customerId}/${action}`);
+      }
       fetchCustomers();
     } catch (err) {
       console.error(err);
@@ -183,7 +187,7 @@ const CustomersPage: React.FC = () => {
           >
             Message
           </Button>
-          {r.status === 'ACTIVE' ? (
+          {r.status === 'ACTIVE' && (
             <Button
               id={`suspend-customer-${r.id}`}
               icon={<StopOutlined />}
@@ -193,7 +197,8 @@ const CustomersPage: React.FC = () => {
             >
               Suspend
             </Button>
-          ) : (
+          )}
+          {r.status === 'SUSPENDED' && (
             <Button
               id={`unsuspend-customer-${r.id}`}
               icon={<CheckCircleOutlined />}
@@ -204,19 +209,47 @@ const CustomersPage: React.FC = () => {
               Unsuspend
             </Button>
           )}
-          <Button
-            id={`terminate-customer-${r.id}`}
-            icon={<DeleteOutlined />}
-            size="small"
-            danger
-            onClick={() => {
-              if (window.confirm('Are you sure you want to terminate this user? This cannot be undone.')) {
-                handleAction(r.id, 'terminate');
-              }
-            }}
-          >
-            Terminate
-          </Button>
+          {r.status !== 'DELETED' && (
+            <Button
+              id={`terminate-customer-${r.id}`}
+              icon={<DeleteOutlined />}
+              size="small"
+              danger
+              onClick={() => {
+                if (window.confirm('Are you sure you want to terminate this user? This cannot be undone directly (requires reactivation).')) {
+                  handleAction(r.id, 'terminate');
+                }
+              }}
+            >
+              Terminate
+            </Button>
+          )}
+          {r.status === 'DELETED' && (
+            <>
+              <Button
+                id={`reactivate-customer-${r.id}`}
+                icon={<CheckCircleOutlined />}
+                size="small"
+                style={{ color: '#2E7D32', borderColor: '#2E7D32' }}
+                onClick={() => handleAction(r.id, 'reactivate')}
+              >
+                Reactivate
+              </Button>
+              <Button
+                id={`erase-customer-${r.id}`}
+                icon={<DeleteOutlined />}
+                size="small"
+                danger
+                onClick={() => {
+                  if (window.confirm('CRITICAL WARNING: Are you sure you want to PERMANENTLY ERASE this user? All their loans, payments, and data will be destroyed. This allows them to register again with the same number.')) {
+                    handleAction(r.id, 'erase');
+                  }
+                }}
+              >
+                Erase (Hard Delete)
+              </Button>
+            </>
+          )}
         </Space>
       ),
     },

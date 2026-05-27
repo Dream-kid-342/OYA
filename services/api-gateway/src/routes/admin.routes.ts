@@ -139,6 +139,42 @@ export default async function adminRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // POST /api/v1/admin/customers/:id/reactivate
+  fastify.post('/customers/:id/reactivate', async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      await prisma.user.update({
+        where: { id },
+        data: { status: 'ACTIVE', deletedAt: null },
+      });
+      return reply.send({ status: 'success', message: 'User reactivated successfully' });
+    } catch (error) {
+      request.log.error(error);
+      return reply.status(500).send({ status: 'error', message: 'Failed to reactivate user' });
+    }
+  });
+
+  // DELETE /api/v1/admin/customers/:id/erase
+  fastify.delete('/customers/:id/erase', async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      // Delete all related records first to avoid foreign key constraints
+      await prisma.$transaction([
+        prisma.session.deleteMany({ where: { userId: id } }),
+        prisma.notification.deleteMany({ where: { userId: id } }),
+        prisma.repayment.deleteMany({ where: { userId: id } }),
+        prisma.loan.deleteMany({ where: { userId: id } }),
+        prisma.paymentRequest.deleteMany({ where: { userId: id } }),
+        prisma.securityEvent.deleteMany({ where: { userId: id } }),
+        prisma.user.delete({ where: { id } }),
+      ]);
+      return reply.send({ status: 'success', message: 'User erased completely' });
+    } catch (error) {
+      request.log.error(error);
+      return reply.status(500).send({ status: 'error', message: 'Failed to erase user' });
+    }
+  });
+
   // POST /api/v1/admin/customers/:id/message
   fastify.post('/customers/:id/message', async (request, reply) => {
     try {
