@@ -32,8 +32,8 @@ jobs:
       - name: Generate Launcher Icons and Splash Screen
         working-directory: apps/mobile
         run: |
-          flutter pub run flutter_launcher_icons
-          flutter pub run flutter_native_splash:create
+          dart run flutter_launcher_icons
+          dart run flutter_native_splash:create
 
       - name: Build APK
         working-directory: apps/mobile
@@ -69,8 +69,8 @@ jobs:
       - name: Generate Launcher Icons and Splash Screen
         working-directory: apps/mobile
         run: |
-          flutter pub run flutter_launcher_icons
-          flutter pub run flutter_native_splash:create
+          dart run flutter_launcher_icons
+          dart run flutter_native_splash:create
 
       - name: Build unsigned iOS App
         working-directory: apps/mobile
