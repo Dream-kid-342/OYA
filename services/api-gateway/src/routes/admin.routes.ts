@@ -74,7 +74,14 @@ export default async function adminRoutes(fastify: FastifyInstance) {
   });
 
   // GET /api/v1/admin/customers/:id
-  fastify.get('/customers/:id', async (request, reply) => {
+  fastify.get('/customers/:id', {
+    config: {
+      rateLimit: {
+        max: 60,
+        timeWindow: '1 minute',
+      },
+    },
+  }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
       const user = await prisma.user.findUnique({
