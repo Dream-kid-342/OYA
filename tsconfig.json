@@ -21,5 +21,5 @@
       "@oya/shared": ["packages/shared/src/index.ts"]
     }
   },
-  "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.test.ts", "apps", "*.config.ts", "**/*.config.ts"]
+  "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.test.ts", "apps", "supabase", "*.config.ts", "**/*.config.ts"]
 }
