@@ -16,6 +16,10 @@ RUN npm ci
 # Generate Prisma Client
 RUN npm run db:generate
 
+# Build dependencies first
+RUN npm run build -w @oya/shared
+RUN npm run build -w @oya/database
+
 # Build the specific service
 RUN npm run build -w @oya/loan-service
 

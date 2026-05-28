@@ -2,7 +2,11 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    "paths": {
+      "@oya/database": ["../../packages/database/dist/index.d.ts"],
+      "@oya/shared": ["../../packages/shared/dist/index.d.ts"]
+    }
   },
   "include": ["src/**/*"]
 }

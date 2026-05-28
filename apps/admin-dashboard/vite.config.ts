@@ -15,10 +15,18 @@ export default defineConfig({
     outDir: 'dist',
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          antd: ['antd', '@ant-design/icons'],
-          charts: ['recharts'],
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+              return 'vendor';
+            }
+            if (id.includes('antd') || id.includes('@ant-design/icons')) {
+              return 'antd';
+            }
+            if (id.includes('recharts')) {
+              return 'charts';
+            }
+          }
         },
       },
     },
