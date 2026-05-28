@@ -42,7 +42,7 @@ api.interceptors.response.use(
 
       try {
         const { data } = await axios.post(
-          `${(import.meta as any).env.VITE_API_BASE_URL || 'http://localhost:3000'}/auth/refresh`,
+          `${(import.meta as any).env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1'}/admin/auth/refresh`,
           {},
           { withCredentials: true },
         );
