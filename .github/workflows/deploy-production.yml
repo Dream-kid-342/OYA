@@ -245,6 +245,11 @@ jobs:
           script: |
             cd /opt/oya-microcredit
 
+            # Create or update production .env file
+            cat << 'EOF' > .env
+            ${{ secrets.PROD_ENV_FILE }}
+            EOF
+
             # Pull latest images
             docker compose pull
 
