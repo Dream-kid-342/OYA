@@ -231,6 +231,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [gate]
     environment: production
+    if: ${{ secrets.PROD_SERVER_HOST != '' && secrets.PROD_SERVER_USER != '' && secrets.PROD_SSH_KEY != '' }}
 
     steps:
       - uses: actions/checkout@v4
