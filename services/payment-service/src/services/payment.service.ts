@@ -5,7 +5,7 @@ import { prisma } from '@oya/database';
 import { getRedisClient, RedisKeys, RedisTTL, getNotificationsQueue, getAuditLogsQueue } from '@oya/shared';
 import { validateAndNormalize } from '@oya/shared';
 import { initiateStkPush, validateSafaricomIp, queryStkStatus } from './daraja.service';
-import { applyPaymentToInstallments } from '../../loan-service/src/services/repayment-schedule.service';
+import { applyPaymentToInstallments } from './repayment-schedule.service';
 
 /**
  * Generate idempotency key: SHA256(userId + loanId + amount + minute)

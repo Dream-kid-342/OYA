@@ -37,11 +37,11 @@ jobs:
 
       - name: Build APK
         working-directory: apps/mobile
-        run: flutter build apk --release
+        run: flutter build apk --debug
 
       - name: Rename APK
         working-directory: apps/mobile
-        run: mv build/app/outputs/flutter-apk/app-release.apk android.apk
+        run: mv build/app/outputs/flutter-apk/app-debug.apk android.apk
 
       - name: Upload Android Artifact
         uses: actions/upload-artifact@v4
@@ -74,7 +74,7 @@ jobs:
 
       - name: Build unsigned iOS App
         working-directory: apps/mobile
-        run: flutter build ios --release --no-codesign
+        run: flutter build ios --debug --no-codesign
 
       - name: Package IPA
         working-directory: apps/mobile
